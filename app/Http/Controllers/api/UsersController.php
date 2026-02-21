@@ -7,9 +7,16 @@ use Illuminate\Http\Request;
 use Image;
 use App\Models\File;
 use App\Models\Library;
+use App\Models\PlatformSetting;
 
 class UsersController extends Controller
 {
+
+    public function __construct()
+    {
+        $this->middleware(['auth:api', 'active.user']);
+    }
+
 
     public function allfiles (Library $library) {
         $files = File::where('library_id' , $library->id)->latest()->get();
@@ -26,6 +33,19 @@ class UsersController extends Controller
             'password' => 'required',
 
         ]);
+
+        $user = request()->user();
+        $freeLibraryLimit = (int) PlatformSetting::getValue('free_library_limit', config('paywall.free_library_limit'));
+        $libraryPrice = PlatformSetting::getValue('library_price', config('paywall.library_price'));
+
+        if (!$user->is_paid && $user->libraries()->count() >= $freeLibraryLimit) {
+            return response()->json([
+                'message' => 'Library creation limit reached. Payment required.',
+                'limit' => $freeLibraryLimit,
+                'price' => $libraryPrice,
+            ], 402);
+        }
+
         $library =  new Library ;
         $library->name = request()->name;
         $library->user_id = request()->user()->id;

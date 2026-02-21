@@ -10,6 +10,12 @@ use Spatie\QueryBuilder\QueryBuilder;
 
 class ApiController extends Controller
 {
+
+    public function __construct()
+    {
+        $this->middleware(['auth:api', 'active.user']);
+    }
+
     public function getallfiles (Library $library) {
         $files = File::where('library_id' , $library->id)->latest();
         $filter = QueryBuilder::for($files)->allowedFilters(['name'])

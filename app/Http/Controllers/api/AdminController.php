@@ -12,6 +12,18 @@ use Image;
 
 class AdminController extends Controller
 {
+
+    public function __construct()
+    {
+        $this->middleware(['auth:api', 'active.user']);
+        $this->middleware(function ($request, $next) {
+            if ((int) $request->user()->role !== 0) {
+                return response()->json(['message' => 'Admin access only'], 403);
+            }
+            return $next($request);
+        });
+    }
+
     public function allusers () {
         return response()->json(User::where('role',1)->get());
     }
@@ -68,6 +80,12 @@ class AdminController extends Controller
         if(request()->password) {
             request()->validate(['password' => 'required|confirmed|min:6']);
             $user->password  = Hash::make(request()->password);
+        }
+        if(request()->has('is_disabled')) {
+            $user->is_disabled = (bool) request()->is_disabled;
+        }
+        if(request()->has('is_paid')) {
+            $user->is_paid = (bool) request()->is_paid;
         }
         if(request()->user_login_token) {
             request()->validate(['user_login_token' => 'required|unique:users,user_login_token,'.$user->id]);
