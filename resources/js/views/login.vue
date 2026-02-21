@@ -56,6 +56,9 @@
                 Register
               </button>
             </div>
+            <p style="margin-top: 12px">
+              <router-link to="/test">Open public /test page</router-link>
+            </p>
           </form>
         </div>
       </div>

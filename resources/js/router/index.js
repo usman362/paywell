@@ -2,7 +2,6 @@ import { createRouter, createWebHistory } from "vue-router";
 import VueRouteMiddleware from "vue-route-middleware";
 import auth from "../middleware/auth";
 import guest from "../middleware/guest";
-import { BaseUrl } from "../settings";
 import admin from "../middleware/admin";
 import user from "../middleware/user";
 
@@ -24,6 +23,11 @@ const routes = [
         },
     },
     {
+        name: "test",
+        path: "/test",
+        component: () => import("../views/test.vue"),
+    },
+    {
         name: "dashboard",
         path: "/",
         component: () => import("../views/dashboard.vue"),
@@ -35,6 +39,14 @@ const routes = [
         name: "files",
         path: "/library/:id",
         component: () => import("../views/files.vue"),
+        meta: {
+            middleware: [auth, user],
+        },
+    },
+    {
+        name: "user.feed",
+        path: "/feed",
+        component: () => import("../views/userFeed.vue"),
         meta: {
             middleware: [auth, user],
         },
@@ -59,6 +71,14 @@ const routes = [
         name: "admin.user.files",
         path: "/user/files/:id",
         component: () => import("../views/user.vue"),
+        meta: {
+            middleware: [auth, admin],
+        },
+    },
+    {
+        name: "admin.platform",
+        path: "/admin/platform",
+        component: () => import("../views/adminPlatform.vue"),
         meta: {
             middleware: [auth, admin],
         },

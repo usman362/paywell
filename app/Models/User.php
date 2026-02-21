@@ -28,6 +28,8 @@ class User extends Authenticatable implements JWTSubject
 
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'is_disabled' => 'boolean',
+        'is_paid' => 'boolean',
     ];
 
     public function getJWTIdentifier()

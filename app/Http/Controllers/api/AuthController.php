@@ -5,6 +5,7 @@ namespace App\Http\Controllers\api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Library;
+use App\Models\PlatformSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -22,6 +23,10 @@ class AuthController extends Controller
     {
         $credentials = $request->only('email', 'password');
         if ($token = $this->guard()->attempt($credentials)) {
+            if (request()->user() && request()->user()->is_disabled) {
+                $this->guard()->logout();
+                return response()->json(['error' => 'Account disabled'], 403);
+            }
             return $this->respondWithToken($token);
         }
 
@@ -41,6 +46,10 @@ class AuthController extends Controller
          }
         }
         if ($token = $this->guard()->login($user)) {
+            if ($user && $user->is_disabled) {
+                $this->guard()->logout();
+                return response()->json(['error' => 'Account disabled'], 403);
+            }
             return $this->respondWithToken($token , $library);
         }
     
@@ -55,6 +64,10 @@ class AuthController extends Controller
             $user = $library->user;
         }
         if ($token = $this->guard()->login($user)) {
+            if ($user && $user->is_disabled) {
+                $this->guard()->logout();
+                return response()->json(['error' => 'Account disabled'], 403);
+            }
             return $this->respondWithToken($token , $library);
         }
     
@@ -63,6 +76,18 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
+        $registrationRequiresPayment = filter_var(
+            PlatformSetting::getValue('registration_requires_payment', config('paywall.registration_requires_payment')),
+            FILTER_VALIDATE_BOOLEAN
+        );
+
+        if ($registrationRequiresPayment) {
+            return response()->json([
+                'message' => 'Registration requires payment',
+                'price' => PlatformSetting::getValue('registration_price', config('paywall.registration_price')),
+            ], 402);
+        }
+
         $data = $request->validate([
             'name' => 'required',
             'email' => 'required|email|unique:users,email',
@@ -73,6 +98,7 @@ class AuthController extends Controller
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
+            'is_paid' => false,
         ]);
         $user->user_login_token = $user->id . rand(0000, 9999); 
         $user->save();
