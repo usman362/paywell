@@ -2,7 +2,6 @@ import { createRouter, createWebHistory } from "vue-router";
 import VueRouteMiddleware from "vue-route-middleware";
 import auth from "../middleware/auth";
 import guest from "../middleware/guest";
-import { BaseUrl } from "../settings";
 import admin from "../middleware/admin";
 import user from "../middleware/user";
 
@@ -22,6 +21,11 @@ const routes = [
         meta: {
             middleware: [guest],
         },
+    },
+    {
+        name: "test",
+        path: "/test",
+        component: () => import("../views/test.vue"),
     },
     {
         name: "dashboard",
