@@ -34,6 +34,9 @@
             @keyup.enter="fetchUsers(1)"
           />
         </div>
+        <div class="right-action" style="margin-right:10px">
+          <button class="btn" @click.prevent="$router.push({ name: 'user.feed' })">announcements & chat</button>
+        </div>
         <div class="right-action">
           <select v-model.number="perPage" @change="fetchUsers(1)" class="page-select">
             <option value="20">20 per page</option>

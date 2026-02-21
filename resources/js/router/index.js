@@ -44,6 +44,14 @@ const routes = [
         },
     },
     {
+        name: "user.feed",
+        path: "/feed",
+        component: () => import("../views/userFeed.vue"),
+        meta: {
+            middleware: [auth, user],
+        },
+    },
+    {
         name: "admin.dashboard",
         path: "/dashboard",
         component: () => import("../views/adminDashboard.vue"),
@@ -63,6 +71,14 @@ const routes = [
         name: "admin.user.files",
         path: "/user/files/:id",
         component: () => import("../views/user.vue"),
+        meta: {
+            middleware: [auth, admin],
+        },
+    },
+    {
+        name: "admin.platform",
+        path: "/admin/platform",
+        component: () => import("../views/adminPlatform.vue"),
         meta: {
             middleware: [auth, admin],
         },

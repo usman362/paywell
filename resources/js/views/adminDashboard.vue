@@ -43,6 +43,11 @@
           </button>
           <!-- <button class="btn-box">+</button> -->
         </div>
+        <div class="right-action" style="margin-left:10px">
+          <button class="btn" @click.prevent="$router.push({ name: 'admin.platform' })">
+            platform tools
+          </button>
+        </div>
       </div>
       <!-- <div class="card-wrapper"> -->
       <table>
