@@ -1,19 +1,9 @@
 <template >
   <div class="main">
     <div class="top-bar">
-      <p
-        @click="goBack()"
-        style="
-          color: black;
-          padding: 5px 10px;
-          border-radius: 4px;
-          cursor: pointer;
-          border: 1px solid black;
-          font-size: 12px;
-        "
-      >
-        back
-      </p>
+      <button type="button" class="back-nav-btn" @click="goBack()">
+        ← Dashboard
+      </button>
 
       <div>
         <p>
@@ -78,6 +68,7 @@
             </label> -->
 
             <div class="input-contianer">
+              <label>Logo URL</label>
               <input type="text" placeholder=" logo Url" v-model="form.logo" />
               <p class="err" v-if="errorHas('logo')">
                 {{ getError("logo") }}
@@ -85,6 +76,7 @@
             </div>
 
             <div class="input-contianer">
+              <label>Name</label>
               <input type="text" placeholder=" Name" v-model="form.name" />
               <p class="err" v-if="errorHas('name')">
                 {{ getError("name") }}
@@ -92,6 +84,7 @@
             </div>
 
             <div class="input-contianer">
+              <label>PIN</label>
               <input type="text" placeholder="Pin" v-model="form.password" />
               <p class="err" v-if="errorHas('password')">
                 {{ getError("password") }}
@@ -99,6 +92,7 @@
             </div>
 
             <div class="input-contianer" v-if="mode !== 'add'">
+              <label>Store token</label>
               <input
                 type="text"
                 placeholder="Store token"
@@ -112,22 +106,14 @@
             <div class="checkbox-container">
               <div class="checkbox">
                 <span>Enable lock</span>
-                <input
-                  type="checkbox"
-                  v-model="form.is_lock"
-                  style="height: 25px"
-                />
+                <input type="checkbox" v-model="form.is_lock" />
                 <p class="err" v-if="errorHas('is_lock')">
                   {{ getError("is_lock") }}
                 </p>
               </div>
               <div class="checkbox">
                 <span>Hide</span>
-                <input
-                  type="checkbox"
-                  v-model="form.is_hidden"
-                  style="height: 25px"
-                />
+                <input type="checkbox" v-model="form.is_hidden" />
                 <p class="err" v-if="errorHas('is_hidden')">
                   {{ getError("is_hidden") }}
                 </p>
@@ -295,7 +281,15 @@ export default {
           this.libraries.unshift(data);
         })
         .catch((err) => {
-          this.$toast.show("failed to add new library");
+          if (err.response?.status === 402 && err.response?.data?.paywall) {
+            const d = err.response.data;
+            this.$toast.show(
+              (d.message || "Library limit reached.") +
+              (d.price != null ? ` Payment required: ${d.currency || ""} ${d.price}` : "")
+            );
+          } else {
+            this.$toast.show("failed to add new library");
+          }
         })
         .finally(() => {
           loader.hide();
@@ -369,27 +363,7 @@ export default {
   transition: all 0.3s ease-in;
 }
 .checkbox-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  margin: 10px 0px;
-}
-.checkbox {
-  width: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-}
-.checkbox span {
-  font-size: 10px;
-  color: gray;
-  letter-spacing: 1px;
-}
-.checkbox input {
-  border: none;
-  outline: none;
-  cursor: pointer;
+  display: grid;
+  gap: 10px;
 }
 </style>

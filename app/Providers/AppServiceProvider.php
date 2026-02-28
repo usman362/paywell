@@ -39,7 +39,7 @@ class AppServiceProvider extends ServiceProvider
         Validator::replacer('image64', function ($message, $attribute, $rule, $parameters) {
             return str_replace(':values', join(",", $parameters), $message);
         });
-      if(!User::first()) {
+      if (Schema::hasTable('users') && !User::first()) {
           $user = new User;
           $user->name = 'admin';
           $user->email = 'admin@apkstash.com';

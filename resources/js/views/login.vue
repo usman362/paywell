@@ -27,6 +27,7 @@
           <h1>Sign In</h1>
           <form class="form-container" @submit.prevent="loginHandler()">
             <div class="input-contianer">
+              <label>Email</label>
               <input
                 type="email"
                 placeholder="Email"
@@ -36,6 +37,7 @@
               <p class="err" v-if="error">email field is required</p>
             </div>
             <div class="input-contianer">
+              <label>Password</label>
               <input
                 type="password"
                 placeholder="Password"
@@ -87,8 +89,9 @@ export default {
         .then(() => {
           this.$router.replace({ name: "dashboard" });
         })
-        .catch(() => {
-          this.$toast.show("login failed unauthorized");
+        .catch((err) => {
+          const msg = err.response?.data?.message || err.response?.data?.error || "login failed unauthorized";
+          this.$toast.show(msg);
         })
         .finally(() => {
           loader.hide();

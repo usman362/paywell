@@ -5,6 +5,7 @@ namespace App\Http\Controllers\api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Library;
+use App\Models\PaywallSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -15,6 +16,7 @@ class AuthController extends Controller
     public function __construct()
     {
         $this->middleware('auth:api', ['except' => ['login',  'register', 'login_token','secure_login']]);
+        $this->middleware('active', ['except' => ['login', 'register', 'login_token', 'secure_login']]);
     }
 
 
@@ -22,6 +24,14 @@ class AuthController extends Controller
     {
         $credentials = $request->only('email', 'password');
         if ($token = $this->guard()->attempt($credentials)) {
+            $user = $this->guard()->user();
+            if (!$user->is_active) {
+                $this->guard()->logout();
+                return response()->json([
+                    'error' => 'Account disabled',
+                    'message' => 'Your account has been disabled. Please contact support.',
+                ], 403);
+            }
             return $this->respondWithToken($token);
         }
 
@@ -40,6 +50,12 @@ class AuthController extends Controller
           
          }
         }
+        if ($user && !$user->is_active) {
+            return response()->json([
+                'error' => 'Account disabled',
+                'message' => 'Your account has been disabled. Please contact support.',
+            ], 403);
+        }
         if ($token = $this->guard()->login($user)) {
             return $this->respondWithToken($token , $library);
         }
@@ -54,6 +70,12 @@ class AuthController extends Controller
         if($library !==  null){
             $user = $library->user;
         }
+        if ($user && !$user->is_active) {
+            return response()->json([
+                'error' => 'Account disabled',
+                'message' => 'Your account has been disabled. Please contact support.',
+            ], 403);
+        }
         if ($token = $this->guard()->login($user)) {
             return $this->respondWithToken($token , $library);
         }
@@ -63,6 +85,13 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
+        $paywall = PaywallSettings::get();
+        if (!$paywall->registration_enabled) {
+            return response()->json([
+                'message' => 'Registration is currently disabled. Please contact support.',
+            ], 403);
+        }
+
         $data = $request->validate([
             'name' => 'required',
             'email' => 'required|email|unique:users,email',

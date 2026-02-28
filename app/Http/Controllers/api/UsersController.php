@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Image;
 use App\Models\File;
 use App\Models\Library;
+use App\Models\PaywallSettings;
 
 class UsersController extends Controller
 {
@@ -21,6 +22,18 @@ class UsersController extends Controller
         return response()->json($libraries->loadCount('files'));
     }
     public function addNewLibrary() {
+        $paywall = PaywallSettings::get();
+        $currentCount = Library::where('user_id', request()->user()->id)->count();
+        if ($currentCount >= $paywall->free_library_limit) {
+            return response()->json([
+                'message' => 'Library limit reached. Payment is required to create more libraries.',
+                'paywall' => true,
+                'free_library_limit' => $paywall->free_library_limit,
+                'price' => $paywall->price,
+                'currency' => $paywall->currency,
+            ], 402);
+        }
+
         request()->validate([
             'name' => 'required',
             'password' => 'required',

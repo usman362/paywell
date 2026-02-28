@@ -18,6 +18,16 @@ class User extends Authenticatable implements JWTSubject
         return $this->hasMany(Library::class);
     }
 
+    public function chatRooms()
+    {
+        return $this->belongsToMany(ChatRoom::class, 'chat_room_user')->withTimestamps();
+    }
+
+    public function chatMessages()
+    {
+        return $this->hasMany(ChatMessage::class);
+    }
+
     protected $guarded = [];
 
     protected $hidden = [
@@ -28,6 +38,7 @@ class User extends Authenticatable implements JWTSubject
 
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'is_active' => 'boolean',
     ];
 
     public function getJWTIdentifier()

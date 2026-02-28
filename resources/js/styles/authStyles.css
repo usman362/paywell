@@ -74,7 +74,15 @@
     margin-top: 10px;
     margin-bottom: 3px;
 }
-.input-contianer input {
+.input-contianer label {
+    display: block;
+    margin-bottom: 6px;
+    color: #4b5563;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0;
+}
+.input-contianer input:not([type="checkbox"]):not([type="radio"]) {
     width: 90%;
     height: 45px;
     border: 1px solid #ebebe4;
@@ -123,21 +131,24 @@
     text-decoration: none;
     padding: 0 5px;
 }
-.btn-container button {
-    width: 128px;
-    height: 46px;
-    border: none;
-    border-radius: 10px;
-    box-shadow: 2px 3px 9px 0px rgba(0, 0, 0, 0.27);
-    -webkit-box-shadow: 2px 3px 9px 0px rgba(0, 0, 0, 0.27);
-    -moz-box-shadow: 2px 3px 9px 0px rgba(0, 0, 0, 0.27);
-}
 .btn-container {
     margin-top: 30px;
-    width: 300px;
     display: flex;
     align-items: center;
-    justify-content: space-evenly;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.btn-container button {
+    min-width: 120px;
+    height: 42px;
+    padding: 0 16px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s, opacity 0.2s;
 }
 .blue-btn {
     background-color: var(--primary-color);
@@ -145,7 +156,8 @@
 }
 .white-btn {
     background-color: var(--white);
-    color: black;
+    color: #1f2937;
+    border-color: #d1d5db;
 }
 .err {
     font-size: 10px;
@@ -161,10 +173,14 @@
 /* hover effects */
 
 .btn-container button:hover {
-    opacity: 0.9;
+    opacity: 0.95;
     cursor: pointer;
 }
-.input-contianer input:focus {
+.btn-container button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+.input-contianer input:not([type="checkbox"]):not([type="radio"]):focus {
     outline: none;
     border: 1px solid lightblue;
 }

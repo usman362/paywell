@@ -25,18 +25,24 @@
       <div class="overlay">
         <div class="right-box">
           <h1>Sign Up</h1>
-          <form class="form-container" @submit.prevent="registerHandler()">
+          <p v-if="!registrationEnabled" class="err" style="margin-bottom: 12px;">
+            Registration is currently disabled. Please contact support.
+          </p>
+          <form v-else class="form-container" @submit.prevent="registerHandler()">
             <div class="input-contianer">
+              <label>Name</label>
               <input type="text" placeholder="Your Name" v-model="form.name" />
               <p class="err" v-if="errorHas('name')">{{ getError("name") }}</p>
             </div>
             <div class="input-contianer">
+              <label>Email</label>
               <input type="email" placeholder="Email" v-model="form.email" />
               <p class="err" v-if="errorHas('email')">
                 {{ getError("email") }}
               </p>
             </div>
             <div class="input-contianer">
+              <label>Password</label>
               <input
                 type="password"
                 placeholder="Password"
@@ -48,6 +54,7 @@
             </div>
 
             <div class="input-contianer">
+              <label>Password confirmation</label>
               <input
                 type="password"
                 placeholder="Password Confirmation"
@@ -82,11 +89,13 @@
 
 <script>
 import { mapActions, mapMutations } from "vuex";
+import axios from "axios";
 
 export default {
   data() {
     return {
       error: null,
+      registrationEnabled: true,
       form: new Form({
         name: "",
         email: "",
@@ -94,6 +103,11 @@ export default {
         password_confirmation: "",
       }),
     };
+  },
+  created() {
+    axios.get("paywall/settings").then(({ data }) => {
+      this.registrationEnabled = data.registration_enabled;
+    }).catch(() => {});
   },
   methods: {
     ...mapActions({ _loginHandler: "LOGIN_HANDLER" }),

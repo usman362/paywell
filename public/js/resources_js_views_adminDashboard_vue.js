@@ -13,12 +13,15 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var vuex__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! vuex */ "./node_modules/vuex/dist/vuex.esm-bundler.js");
 /* harmony import */ var _settings__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../settings */ "./resources/js/settings.js");
+/* harmony import */ var axios__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! axios */ "./node_modules/axios/index.js");
+/* harmony import */ var axios__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(axios__WEBPACK_IMPORTED_MODULE_2__);
 function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
 function ownKeys(e, r) { var t = Object.keys(e); if (Object.getOwnPropertySymbols) { var o = Object.getOwnPropertySymbols(e); r && (o = o.filter(function (r) { return Object.getOwnPropertyDescriptor(e, r).enumerable; })), t.push.apply(t, o); } return t; }
 function _objectSpread(e) { for (var r = 1; r < arguments.length; r++) { var t = null != arguments[r] ? arguments[r] : {}; r % 2 ? ownKeys(Object(t), !0).forEach(function (r) { _defineProperty(e, r, t[r]); }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function (r) { Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r)); }); } return e; }
 function _defineProperty(e, r, t) { return (r = _toPropertyKey(r)) in e ? Object.defineProperty(e, r, { value: t, enumerable: !0, configurable: !0, writable: !0 }) : e[r] = t, e; }
 function _toPropertyKey(t) { var i = _toPrimitive(t, "string"); return "symbol" == _typeof(i) ? i : i + ""; }
 function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e = t[Symbol.toPrimitive]; if (void 0 !== e) { var i = e.call(t, r || "default"); if ("object" != _typeof(i)) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === r ? String : Number)(t); }
+
 
 
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({
@@ -28,18 +31,26 @@ function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e 
   data: function data() {
     return {
       isShow: false,
+      paywallShow: false,
       users: [],
       loading: false,
       mode: "add",
       id: undefined,
       searchQuerry: "",
+      paywallForm: {
+        free_library_limit: 1,
+        price: 9.99,
+        currency: "USD",
+        registration_enabled: true
+      },
       form: new Form({
         name: "",
         email: "",
         password: "",
         password_confirmation: "",
         user_login_token: "",
-        role: undefined
+        role: undefined,
+        is_active: true
       })
     };
   },
@@ -48,6 +59,34 @@ function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e 
   })), {}, {
     closeModal: function closeModal() {
       this.isShow = false;
+    },
+    openPaywallModal: function openPaywallModal() {
+      var _this = this;
+      this.paywallShow = true;
+      axios__WEBPACK_IMPORTED_MODULE_2___default().get("paywall/settings").then(function (_ref) {
+        var data = _ref.data;
+        _this.paywallForm = {
+          free_library_limit: data.free_library_limit,
+          price: data.price,
+          currency: data.currency,
+          registration_enabled: data.registration_enabled
+        };
+      })["catch"](function () {
+        return _this.$toast.show("Failed to load paywall settings");
+      });
+    },
+    closePaywallModal: function closePaywallModal() {
+      this.paywallShow = false;
+    },
+    savePaywallSettings: function savePaywallSettings() {
+      var _this2 = this;
+      axios__WEBPACK_IMPORTED_MODULE_2___default().put("paywall/settings", this.paywallForm).then(function () {
+        _this2.$toast.show("Paywall settings saved");
+        _this2.closePaywallModal();
+      })["catch"](function (e) {
+        var _e$response;
+        _this2.$toast.show(((_e$response = e.response) === null || _e$response === void 0 || (_e$response = _e$response.data) === null || _e$response === void 0 ? void 0 : _e$response.message) || "Failed to save settings");
+      });
     },
     errorHas: function errorHas(name) {
       return this.form.errors.has(name);
@@ -73,72 +112,91 @@ function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e 
     onEdit: function onEdit(f) {
       this.form.clear();
       this.form.reset();
-      this.form.fill(f);
+      this.form.fill(_objectSpread(_objectSpread({}, f), {}, {
+        is_active: f.is_active !== false
+      }));
       this.mode = "edit";
       this.id = f.id;
       this.isShow = true;
     },
+    toggleUserActive: function toggleUserActive(u) {
+      var _this3 = this;
+      var action = u.is_active ? "disable" : "enable";
+      if (!confirm("Are you sure you want to ".concat(action, " this user?"))) return;
+      axios__WEBPACK_IMPORTED_MODULE_2___default().put("disableUser/" + u.id, {
+        is_active: !u.is_active
+      }).then(function (_ref2) {
+        var data = _ref2.data;
+        _this3.$toast.show(data.message || (u.is_active ? "User disabled" : "User enabled"));
+        var idx = _this3.users.findIndex(function (x) {
+          return x.id === u.id;
+        });
+        if (idx !== -1 && data.user) _this3.users[idx] = data.user;
+      })["catch"](function (e) {
+        var _e$response2;
+        return _this3.$toast.show(((_e$response2 = e.response) === null || _e$response2 === void 0 || (_e$response2 = _e$response2.data) === null || _e$response2 === void 0 ? void 0 : _e$response2.message) || "Failed to update");
+      });
+    },
     signout: function signout() {
-      var _this = this;
+      var _this4 = this;
       this._logout().then(function (res) {
-        _this.$router.go("login");
+        _this4.$router.go("login");
       });
     },
     getUsers: function getUsers() {
-      var _this2 = this;
+      var _this5 = this;
       this.loading = true;
       var loader = this.$loading.show({
         container: this.fullPage ? null : this.$refs.formContainer,
         canCancel: false
       });
-      this.form.get("allusers").then(function (_ref) {
-        var data = _ref.data;
-        _this2.users = data;
+      this.form.get("allusers").then(function (_ref3) {
+        var data = _ref3.data;
+        _this5.users = data;
       })["finally"](function () {
         loader.hide();
-        _this2.loading = false;
+        _this5.loading = false;
       });
     },
     editUser: function editUser() {
-      var _this3 = this;
+      var _this6 = this;
       var loader = this.$loading.show({
         container: this.fullPage ? null : this.$refs.formContainer,
         canCancel: false
       });
-      this.form.put("editUser/" + this.id).then(function (_ref2) {
-        var data = _ref2.data;
-        _this3.$toast.show("user edit");
-        _this3.form.clear();
-        _this3.form.reset();
-        _this3.id = undefined;
-        _this3.isShow = false;
-        console.log(data.role);
+      this.form.put("editUser/" + this.id).then(function (_ref4) {
+        var data = _ref4.data;
+        _this6.$toast.show("user edit");
+        _this6.form.clear();
+        _this6.form.reset();
+        _this6.id = undefined;
+        _this6.isShow = false;
         if (data.role === 2) return location.reload();
-        _this3.users.map(function (u, i) {
-          return u.id === data.id ? _this3.users[i] = data : null;
+        _this6.users.map(function (u, i) {
+          return u.id === data.id ? _this6.users[i] = data : null;
         });
       })["catch"](function (err) {
         console.log(err);
-        _this3.$toast.show("failed to edit");
+        _this6.$toast.show("failed to edit");
       })["finally"](function () {
         return loader.hide();
       });
     },
     addNewUser: function addNewUser() {
-      var _this4 = this;
+      var _this7 = this;
       var loader = this.$loading.show({
         container: this.fullPage ? null : this.$refs.formContainer,
         canCancel: false
       });
-      this.form.post("addNewUser").then(function (_ref3) {
-        var data = _ref3.data;
-        _this4.$toast.show("new user added");
-        _this4.form.clear();
-        _this4.form.reset();
-        _this4.isShow = false;
-        _this4.users.unshift(data);
+      this.form.post("addNewUser").then(function (_ref5) {
+        var data = _ref5.data;
+        _this7.$toast.show("new user added");
+        _this7.form.clear();
+        _this7.form.reset();
+        _this7.isShow = false;
+        _this7.users.unshift(data);
       })["catch"](function (err) {
-        _this4.$toast.show("failed to add new user");
+        _this7.$toast.show("failed to add new user");
       })["finally"](function () {
         loader.hide();
       });
@@ -154,39 +212,39 @@ function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e 
       // window.location.href = RootUrl + "/dashboard/users/" + id;
     },
     deleteUser: function deleteUser(id) {
-      var _this5 = this;
+      var _this8 = this;
       var loader = this.$loading.show({
         container: this.fullPage ? null : this.$refs.formContainer,
         canCancel: false
       });
       this.form["delete"]("deleteUser/" + id).then(function () {
-        _this5.$toast.show("user deleted");
-        _this5.users.map(function (u, i) {
-          return u.id === id ? _this5.users.splice(i, 1) : null;
+        _this8.$toast.show("user deleted");
+        _this8.users.map(function (u, i) {
+          return u.id === id ? _this8.users.splice(i, 1) : null;
         });
       })["catch"](function () {
-        _this5.$toast.show("err");
+        _this8.$toast.show("err");
       })["finally"](function () {
         return loader.hide();
       });
     },
     usersFilter: function usersFilter() {
-      var _this6 = this;
+      var _this9 = this;
       if (this.searchQuerry) {
         return this.users.filter(function (f) {
-          return f.name.toLowerCase().indexOf(_this6.searchQuerry.toLowerCase()) > -1;
+          return f.name.toLowerCase().indexOf(_this9.searchQuerry.toLowerCase()) > -1;
         });
       } else {
         return this.users;
       }
     },
     imageToBase64: function imageToBase64(e) {
-      var _this7 = this;
+      var _this0 = this;
       var file = e.target.users[0];
       var reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = function () {
-        _this7.form.logo = reader.result;
+        _this0.form.logo = reader.result;
       };
       reader.onerror = function (error) {
         console.log("Error: ", error);
@@ -254,77 +312,135 @@ var _hoisted_8 = {
 };
 var _hoisted_9 = ["onClick"];
 var _hoisted_10 = {
+  key: 0,
+  "class": "status-badge disabled"
+};
+var _hoisted_11 = {
+  key: 1,
+  "class": "status-badge active"
+};
+var _hoisted_12 = {
   "class": "actions"
 };
-var _hoisted_11 = ["onClick"];
-var _hoisted_12 = ["onClick"];
-var _hoisted_13 = {
-  "class": "modal"
-};
-var _hoisted_14 = {
-  "class": "right-box"
-};
+var _hoisted_13 = ["onClick"];
+var _hoisted_14 = ["onClick", "title"];
 var _hoisted_15 = {
-  key: 0
+  key: 0,
+  "class": "action-icon-svg",
+  viewBox: "0 0 24 24",
+  fill: "none",
+  xmlns: "http://www.w3.org/2000/svg"
 };
 var _hoisted_16 = {
-  "class": "input-contianer"
+  key: 1,
+  "class": "action-icon-svg",
+  viewBox: "0 0 24 24",
+  fill: "none",
+  xmlns: "http://www.w3.org/2000/svg"
 };
-var _hoisted_17 = {
-  key: 0,
-  "class": "err"
-};
+var _hoisted_17 = ["onClick"];
 var _hoisted_18 = {
-  "class": "input-contianer"
+  "class": "modal"
 };
 var _hoisted_19 = {
-  key: 0,
-  "class": "err"
+  "class": "right-box"
 };
 var _hoisted_20 = {
   "class": "input-contianer"
 };
 var _hoisted_21 = {
-  key: 0,
-  "class": "err"
+  "class": "input-contianer"
 };
 var _hoisted_22 = {
   "class": "input-contianer"
 };
 var _hoisted_23 = {
+  "class": "checkbox-container",
+  style: {
+    "margin": "12px 0"
+  }
+};
+var _hoisted_24 = {
+  "class": "checkbox"
+};
+var _hoisted_25 = {
+  "class": "btn-container"
+};
+var _hoisted_26 = {
+  "class": "modal"
+};
+var _hoisted_27 = {
+  "class": "right-box"
+};
+var _hoisted_28 = {
+  key: 0
+};
+var _hoisted_29 = {
+  "class": "input-contianer"
+};
+var _hoisted_30 = {
   key: 0,
   "class": "err"
 };
-var _hoisted_24 = {
+var _hoisted_31 = {
+  "class": "input-contianer"
+};
+var _hoisted_32 = {
+  key: 0,
+  "class": "err"
+};
+var _hoisted_33 = {
+  "class": "input-contianer"
+};
+var _hoisted_34 = {
+  key: 0,
+  "class": "err"
+};
+var _hoisted_35 = {
+  "class": "input-contianer"
+};
+var _hoisted_36 = {
+  key: 0,
+  "class": "err"
+};
+var _hoisted_37 = {
   key: 0,
   "class": "input-contianer"
 };
-var _hoisted_25 = {
+var _hoisted_38 = {
   key: 0,
   "class": "err"
 };
-var _hoisted_26 = {
+var _hoisted_39 = {
+  key: 1,
+  "class": "checkbox-container"
+};
+var _hoisted_40 = {
+  "class": "checkbox"
+};
+var _hoisted_41 = {
   "class": "btn-container"
 };
-var _hoisted_27 = {
+var _hoisted_42 = {
   "class": "blue-btn",
   type: "submit"
 };
 function render(_ctx, _cache, $props, $setup, $data, $options) {
+  var _component_router_link = (0,vue__WEBPACK_IMPORTED_MODULE_0__.resolveComponent)("router-link");
   var _component_Modal = (0,vue__WEBPACK_IMPORTED_MODULE_0__.resolveComponent)("Modal");
-  return (0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_1, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_2, [_cache[14] || (_cache[14] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("img", {
+  return (0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_1, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_2, [_cache[23] || (_cache[23] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("img", {
     src: _assets_logo_png__WEBPACK_IMPORTED_MODULE_1__["default"],
     alt: "logo",
     style: {
       "height": "45px",
       "width": "70px"
     }
-  }, null, -1 /* CACHED */)), _cache[15] || (_cache[15] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", null, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("p", null, "SUPER ADMIN")], -1 /* CACHED */)), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_3, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_4, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
+  }, null, -1 /* CACHED */)), _cache[24] || (_cache[24] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", null, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("p", null, "SUPER ADMIN")], -1 /* CACHED */)), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_3, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_4, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
     "class": "btn-box",
     onClick: _cache[0] || (_cache[0] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.withModifiers)(function ($event) {
       return $options.onEdit(_ctx.user);
     }, ["prevent"]))
-  }, _toConsumableArray(_cache[12] || (_cache[12] = [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("img", {
+  }, _toConsumableArray(_cache[21] || (_cache[21] = [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("img", {
     src: _assets_edit_png__WEBPACK_IMPORTED_MODULE_2__["default"],
     alt: "edit"
   }, null, -1 /* CACHED */)])))]), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", null, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("h2", null, (0,vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)(_ctx.user.name), 1 /* TEXT */), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("p", null, (0,vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)(_ctx.user.email), 1 /* TEXT */)]), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", null, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
@@ -332,10 +448,10 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
     onClick: _cache[1] || (_cache[1] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.withModifiers)(function ($event) {
       return $options.signout();
     }, ["prevent"]))
-  }, _toConsumableArray(_cache[13] || (_cache[13] = [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("img", {
+  }, _toConsumableArray(_cache[22] || (_cache[22] = [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("img", {
     src: _assets_exit_png__WEBPACK_IMPORTED_MODULE_3__["default"],
     alt: "logout"
-  }, null, -1 /* CACHED */)])))])])]), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_5, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_6, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_7, [_cache[16] || (_cache[16] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("img", {
+  }, null, -1 /* CACHED */)])))])])]), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_5, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_6, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_7, [_cache[25] || (_cache[25] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("img", {
     src: _assets_search_png__WEBPACK_IMPORTED_MODULE_4__["default"]
   }, null, -1 /* CACHED */)), (0,vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
     type: "text",
@@ -343,79 +459,196 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
     "onUpdate:modelValue": _cache[2] || (_cache[2] = function ($event) {
       return $data.searchQuerry = $event;
     })
-  }, null, 512 /* NEED_PATCH */), [[vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $data.searchQuerry]])]), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_8, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
+  }, null, 512 /* NEED_PATCH */), [[vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $data.searchQuerry]])]), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_8, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createVNode)(_component_router_link, {
+    to: "/dashboard/chat",
+    "class": "btn",
+    style: {
+      "margin-right": "8px"
+    }
+  }, {
+    "default": (0,vue__WEBPACK_IMPORTED_MODULE_0__.withCtx)(function () {
+      return _toConsumableArray(_cache[26] || (_cache[26] = [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createTextVNode)("Chat", -1 /* CACHED */)]));
+    }),
+    _: 1 /* STABLE */
+  }), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createVNode)(_component_router_link, {
+    to: "/dashboard/announcements",
+    "class": "btn",
+    style: {
+      "margin-right": "8px"
+    }
+  }, {
+    "default": (0,vue__WEBPACK_IMPORTED_MODULE_0__.withCtx)(function () {
+      return _toConsumableArray(_cache[27] || (_cache[27] = [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createTextVNode)("Announcements & Email", -1 /* CACHED */)]));
+    }),
+    _: 1 /* STABLE */
+  }), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
     "class": "btn",
     onClick: _cache[3] || (_cache[3] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.withModifiers)(function ($event) {
+      return $options.openPaywallModal();
+    }, ["prevent"])),
+    style: {
+      "margin-right": "8px"
+    }
+  }, " Paywall settings "), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
+    "class": "btn",
+    onClick: _cache[4] || (_cache[4] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.withModifiers)(function ($event) {
       return $options.openModal();
     }, ["prevent"]))
-  }, " add new users "), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" <button class=\"btn-box\">+</button> ")])]), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" <div class=\"card-wrapper\"> "), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("table", null, [_cache[19] || (_cache[19] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("thead", null, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("tr", null, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("th", null, "Name"), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("th", null, "Email"), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("th", null, "ID"), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("th", null, "Actions")])], -1 /* CACHED */)), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("tbody", null, [((0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(true), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)(vue__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0,vue__WEBPACK_IMPORTED_MODULE_0__.renderList)($options.usersFilter(), function (user) {
+  }, " add new users "), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" <button class=\"btn-box\">+</button> ")])]), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" <div class=\"card-wrapper\"> "), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("table", null, [_cache[32] || (_cache[32] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("thead", null, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("tr", null, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("th", null, "Name"), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("th", null, "Email"), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("th", null, "ID"), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("th", null, "Status"), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("th", null, "Actions")])], -1 /* CACHED */)), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("tbody", null, [((0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(true), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)(vue__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0,vue__WEBPACK_IMPORTED_MODULE_0__.renderList)($options.usersFilter(), function (user) {
     return (0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("tr", {
       key: user.id
     }, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("td", {
       onClick: function onClick($event) {
         return $options.goToUser(user.id);
       }
-    }, (0,vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)(user.name), 9 /* TEXT, PROPS */, _hoisted_9), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("td", null, (0,vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)(user.email), 1 /* TEXT */), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("td", null, (0,vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)(user.user_login_token), 1 /* TEXT */), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("td", _hoisted_10, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", {
+    }, (0,vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)(user.name), 9 /* TEXT, PROPS */, _hoisted_9), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("td", null, (0,vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)(user.email), 1 /* TEXT */), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("td", null, (0,vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)(user.user_login_token), 1 /* TEXT */), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("td", null, [user.is_active === false ? ((0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("span", _hoisted_10, "Disabled")) : ((0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("span", _hoisted_11, "Active"))]), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("td", _hoisted_12, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", {
       "class": "menu",
       onClick: function onClick($event) {
         return $options.onEdit(user);
       }
-    }, _toConsumableArray(_cache[17] || (_cache[17] = [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("img", {
+    }, _toConsumableArray(_cache[28] || (_cache[28] = [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("img", {
       src: _assets_edit_png__WEBPACK_IMPORTED_MODULE_2__["default"]
-    }, null, -1 /* CACHED */)])), 8 /* PROPS */, _hoisted_11), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", {
+    }, null, -1 /* CACHED */)])), 8 /* PROPS */, _hoisted_13), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
+      type: "button",
+      "class": "action-icon-btn",
+      onClick: (0,vue__WEBPACK_IMPORTED_MODULE_0__.withModifiers)(function ($event) {
+        return $options.toggleUserActive(user);
+      }, ["stop"]),
+      title: user.is_active ? 'Disable user' : 'Enable user'
+    }, [user.is_active ? ((0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("svg", _hoisted_15, _toConsumableArray(_cache[29] || (_cache[29] = [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("circle", {
+      cx: "12",
+      cy: "12",
+      r: "9",
+      stroke: "currentColor",
+      "stroke-width": "1.8"
+    }, null, -1 /* CACHED */), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("path", {
+      d: "M8 16L16 8",
+      stroke: "currentColor",
+      "stroke-width": "1.8",
+      "stroke-linecap": "round"
+    }, null, -1 /* CACHED */)])))) : ((0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("svg", _hoisted_16, _toConsumableArray(_cache[30] || (_cache[30] = [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("circle", {
+      cx: "12",
+      cy: "12",
+      r: "9",
+      stroke: "currentColor",
+      "stroke-width": "1.8"
+    }, null, -1 /* CACHED */), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("path", {
+      d: "M8 12L11 15L16 9",
+      stroke: "currentColor",
+      "stroke-width": "1.8",
+      "stroke-linecap": "round",
+      "stroke-linejoin": "round"
+    }, null, -1 /* CACHED */)]))))], 8 /* PROPS */, _hoisted_14), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", {
       "class": "menu",
       onClick: function onClick($event) {
         return $options.onDelete(user.id);
       }
-    }, _toConsumableArray(_cache[18] || (_cache[18] = [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("img", {
+    }, _toConsumableArray(_cache[31] || (_cache[31] = [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("img", {
       src: _assets_menu_png__WEBPACK_IMPORTED_MODULE_5__["default"]
-    }, null, -1 /* CACHED */)])), 8 /* PROPS */, _hoisted_12)])]);
+    }, null, -1 /* CACHED */)])), 8 /* PROPS */, _hoisted_17)])]);
   }), 128 /* KEYED_FRAGMENT */))])]), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" </div> ")]), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createVNode)(_component_Modal, {
-    modelValue: $data.isShow,
+    modelValue: $data.paywallShow,
     "onUpdate:modelValue": _cache[11] || (_cache[11] = function ($event) {
+      return $data.paywallShow = $event;
+    }),
+    close: $options.closePaywallModal
+  }, {
+    "default": (0,vue__WEBPACK_IMPORTED_MODULE_0__.withCtx)(function () {
+      return [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_18, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_19, [_cache[38] || (_cache[38] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("h2", null, "Paywall & access control", -1 /* CACHED */)), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("form", {
+        "class": "form-container",
+        onSubmit: _cache[10] || (_cache[10] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.withModifiers)(function ($event) {
+          return $options.savePaywallSettings();
+        }, ["prevent"]))
+      }, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_20, [_cache[33] || (_cache[33] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "Free library limit (libraries per account before payment)", -1 /* CACHED */)), (0,vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
+        type: "number",
+        min: "0",
+        "onUpdate:modelValue": _cache[5] || (_cache[5] = function ($event) {
+          return $data.paywallForm.free_library_limit = $event;
+        })
+      }, null, 512 /* NEED_PATCH */), [[vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $data.paywallForm.free_library_limit, void 0, {
+        number: true
+      }]])]), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_21, [_cache[34] || (_cache[34] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "Price", -1 /* CACHED */)), (0,vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
+        type: "number",
+        min: "0",
+        step: "0.01",
+        "onUpdate:modelValue": _cache[6] || (_cache[6] = function ($event) {
+          return $data.paywallForm.price = $event;
+        })
+      }, null, 512 /* NEED_PATCH */), [[vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $data.paywallForm.price, void 0, {
+        number: true
+      }]])]), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_22, [_cache[35] || (_cache[35] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "Currency (e.g. USD)", -1 /* CACHED */)), (0,vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
+        type: "text",
+        maxlength: "3",
+        "onUpdate:modelValue": _cache[7] || (_cache[7] = function ($event) {
+          return $data.paywallForm.currency = $event;
+        })
+      }, null, 512 /* NEED_PATCH */), [[vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $data.paywallForm.currency]])]), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_23, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_24, [_cache[36] || (_cache[36] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, "Registration enabled (allow new accounts)", -1 /* CACHED */)), (0,vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
+        type: "checkbox",
+        "onUpdate:modelValue": _cache[8] || (_cache[8] = function ($event) {
+          return $data.paywallForm.registration_enabled = $event;
+        })
+      }, null, 512 /* NEED_PATCH */), [[vue__WEBPACK_IMPORTED_MODULE_0__.vModelCheckbox, $data.paywallForm.registration_enabled]])])]), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_25, [_cache[37] || (_cache[37] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
+        "class": "blue-btn",
+        type: "submit"
+      }, "Save", -1 /* CACHED */)), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
+        "class": "white-btn",
+        onClick: _cache[9] || (_cache[9] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.withModifiers)(function ($event) {
+          return $options.closePaywallModal();
+        }, ["prevent"]))
+      }, "Close")])], 32 /* NEED_HYDRATION */)])])];
+    }),
+    _: 1 /* STABLE */
+  }, 8 /* PROPS */, ["modelValue", "close"]), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createVNode)(_component_Modal, {
+    modelValue: $data.isShow,
+    "onUpdate:modelValue": _cache[20] || (_cache[20] = function ($event) {
       return $data.isShow = $event;
     }),
     close: $options.closeModal
   }, {
     "default": (0,vue__WEBPACK_IMPORTED_MODULE_0__.withCtx)(function () {
-      return [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_13, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_14, [$data.form.role !== 2 ? ((0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("h2", _hoisted_15, (0,vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($data.mode) + " new user", 1 /* TEXT */)) : (0,vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("form", {
+      return [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_26, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_27, [$data.form.role !== 2 ? ((0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("h2", _hoisted_28, (0,vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($data.mode) + " new user", 1 /* TEXT */)) : (0,vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("form", {
         "class": "form-container",
-        onSubmit: _cache[10] || (_cache[10] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.withModifiers)(function ($event) {
+        onSubmit: _cache[19] || (_cache[19] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.withModifiers)(function ($event) {
           return $options.submitHandler();
         }, ["prevent"]))
-      }, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_16, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
+      }, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_29, [_cache[39] || (_cache[39] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "Name", -1 /* CACHED */)), (0,vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
         type: "text",
         placeholder: "Name",
-        "onUpdate:modelValue": _cache[4] || (_cache[4] = function ($event) {
+        "onUpdate:modelValue": _cache[12] || (_cache[12] = function ($event) {
           return $data.form.name = $event;
         })
-      }, null, 512 /* NEED_PATCH */), [[vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $data.form.name]]), $options.errorHas('name') ? ((0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("p", _hoisted_17, (0,vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($options.getError("name")), 1 /* TEXT */)) : (0,vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true)]), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_18, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
+      }, null, 512 /* NEED_PATCH */), [[vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $data.form.name]]), $options.errorHas('name') ? ((0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("p", _hoisted_30, (0,vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($options.getError("name")), 1 /* TEXT */)) : (0,vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true)]), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_31, [_cache[40] || (_cache[40] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "Email", -1 /* CACHED */)), (0,vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
         type: "email",
         placeholder: "Email",
-        "onUpdate:modelValue": _cache[5] || (_cache[5] = function ($event) {
+        "onUpdate:modelValue": _cache[13] || (_cache[13] = function ($event) {
           return $data.form.email = $event;
         })
-      }, null, 512 /* NEED_PATCH */), [[vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $data.form.email]]), $options.errorHas('email') ? ((0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("p", _hoisted_19, (0,vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($options.getError("email")), 1 /* TEXT */)) : (0,vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true)]), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_20, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
+      }, null, 512 /* NEED_PATCH */), [[vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $data.form.email]]), $options.errorHas('email') ? ((0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("p", _hoisted_32, (0,vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($options.getError("email")), 1 /* TEXT */)) : (0,vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true)]), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_33, [_cache[41] || (_cache[41] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "Password", -1 /* CACHED */)), (0,vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
         type: "password",
         placeholder: "Password",
-        "onUpdate:modelValue": _cache[6] || (_cache[6] = function ($event) {
+        "onUpdate:modelValue": _cache[14] || (_cache[14] = function ($event) {
           return $data.form.password = $event;
         })
-      }, null, 512 /* NEED_PATCH */), [[vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $data.form.password]]), $options.errorHas('password') ? ((0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("p", _hoisted_21, (0,vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($options.getError("password")), 1 /* TEXT */)) : (0,vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true)]), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_22, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
+      }, null, 512 /* NEED_PATCH */), [[vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $data.form.password]]), $options.errorHas('password') ? ((0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("p", _hoisted_34, (0,vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($options.getError("password")), 1 /* TEXT */)) : (0,vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true)]), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_35, [_cache[42] || (_cache[42] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "Password confirmation", -1 /* CACHED */)), (0,vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
         type: "password",
         placeholder: "Password Confirmation",
-        "onUpdate:modelValue": _cache[7] || (_cache[7] = function ($event) {
+        "onUpdate:modelValue": _cache[15] || (_cache[15] = function ($event) {
           return $data.form.password_confirmation = $event;
         })
-      }, null, 512 /* NEED_PATCH */), [[vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $data.form.password_confirmation]]), $options.errorHas('password') ? ((0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("p", _hoisted_23, (0,vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($options.getError("password")), 1 /* TEXT */)) : (0,vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true)]), $data.mode === 'edit' && $data.form.role === 1 ? ((0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_24, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
+      }, null, 512 /* NEED_PATCH */), [[vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $data.form.password_confirmation]]), $options.errorHas('password') ? ((0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("p", _hoisted_36, (0,vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($options.getError("password")), 1 /* TEXT */)) : (0,vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true)]), $data.mode === 'edit' && $data.form.role === 1 ? ((0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_37, [_cache[43] || (_cache[43] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", null, "Store token", -1 /* CACHED */)), (0,vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
         type: "text",
         placeholder: "store token",
-        "onUpdate:modelValue": _cache[8] || (_cache[8] = function ($event) {
+        "onUpdate:modelValue": _cache[16] || (_cache[16] = function ($event) {
           return $data.form.user_login_token = $event;
         })
-      }, null, 512 /* NEED_PATCH */), [[vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $data.form.user_login_token]]), $options.errorHas('user_login_token') ? ((0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("p", _hoisted_25, (0,vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($options.getError("user_login_token")), 1 /* TEXT */)) : (0,vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true)])) : (0,vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_26, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", _hoisted_27, (0,vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($data.mode === "add" ? "Add" : "Ok"), 1 /* TEXT */), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
+      }, null, 512 /* NEED_PATCH */), [[vue__WEBPACK_IMPORTED_MODULE_0__.vModelText, $data.form.user_login_token]]), $options.errorHas('user_login_token') ? ((0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("p", _hoisted_38, (0,vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($options.getError("user_login_token")), 1 /* TEXT */)) : (0,vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true)])) : (0,vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true), $data.mode === 'edit' ? ((0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_39, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_40, [_cache[44] || (_cache[44] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", null, "User active (uncheck to disable account)", -1 /* CACHED */)), (0,vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)((0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
+        type: "checkbox",
+        "onUpdate:modelValue": _cache[17] || (_cache[17] = function ($event) {
+          return $data.form.is_active = $event;
+        })
+      }, null, 512 /* NEED_PATCH */), [[vue__WEBPACK_IMPORTED_MODULE_0__.vModelCheckbox, $data.form.is_active]])])])) : (0,vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_41, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", _hoisted_42, (0,vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($data.mode === "add" ? "Add" : "Ok"), 1 /* TEXT */), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
         "class": "white-btn",
-        onClick: _cache[9] || (_cache[9] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.withModifiers)(function ($event) {
+        onClick: _cache[18] || (_cache[18] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.withModifiers)(function ($event) {
           return $options.closeModal();
         }, ["prevent"]))
       }, " Close ")])], 32 /* NEED_HYDRATION */)])])];
@@ -448,7 +681,7 @@ var ___CSS_LOADER_EXPORT___ = _node_modules_css_loader_dist_runtime_api_js__WEBP
 ___CSS_LOADER_EXPORT___.i(_node_modules_css_loader_dist_cjs_js_clonedRuleSet_9_use_1_styles_dashboard_css__WEBPACK_IMPORTED_MODULE_1__["default"]);
 ___CSS_LOADER_EXPORT___.i(_node_modules_css_loader_dist_cjs_js_clonedRuleSet_9_use_1_styles_modal_css__WEBPACK_IMPORTED_MODULE_2__["default"]);
 // Module
-___CSS_LOADER_EXPORT___.push([module.id, "\n.active[data-v-6090e778] {\n  border: 1px solid green;\n}\ntable[data-v-6090e778] {\n  width: 100%;\n  text-align: center;\n  border-collapse: collapse;\n  border-top-right-radius: 10px;\n  border-top-left-radius: 10px;\n  overflow: hidden;\n  margin-top: 40px;\n}\nth[data-v-6090e778],\ntd[data-v-6090e778] {\n  border: 0.4px solid rgb(228, 228, 228);\n  padding: 15px;\n}\ntbody[data-v-6090e778] {\n  background: white;\n  border-bottom: 5px solid #1f487e;\n}\nthead[data-v-6090e778] {\n  background: #1f487e;\n  color: white;\n}\ntd[data-v-6090e778] {\n  font-size: 14px;\n}\nthead th[data-v-6090e778] {\n  border: 1px solid white;\n}\n.actions[data-v-6090e778] {\n  text-align: end;\n}\ntr[data-v-6090e778]:nth-child(even) {\n  background-color: #f2f2f2;\n}\ntbody tr[data-v-6090e778]:hover {\n  color: #1f487e;\n}\ntbody td[data-v-6090e778]:nth-child(1) {\n  cursor: pointer;\n}\n", ""]);
+___CSS_LOADER_EXPORT___.push([module.id, "\n.active[data-v-6090e778] {\n  border: 1px solid green;\n}\ntable[data-v-6090e778] {\n  width: 100%;\n  text-align: center;\n  border-collapse: collapse;\n  border-top-right-radius: 10px;\n  border-top-left-radius: 10px;\n  overflow: hidden;\n  margin-top: 40px;\n}\nth[data-v-6090e778],\ntd[data-v-6090e778] {\n  border: 0.4px solid rgb(228, 228, 228);\n  padding: 15px;\n}\ntbody[data-v-6090e778] {\n  background: white;\n  border-bottom: 5px solid #1f487e;\n}\nthead[data-v-6090e778] {\n  background: #1f487e;\n  color: white;\n}\ntd[data-v-6090e778] {\n  font-size: 14px;\n}\nthead th[data-v-6090e778] {\n  border: 1px solid white;\n}\n.actions[data-v-6090e778] {\n  text-align: end;\n}\ntr[data-v-6090e778]:nth-child(even) {\n  background-color: #f2f2f2;\n}\ntbody tr[data-v-6090e778]:hover {\n  color: #1f487e;\n}\ntbody td[data-v-6090e778]:nth-child(1) {\n  cursor: pointer;\n}\n.status-badge[data-v-6090e778] {\n  padding: 4px 8px;\n  border-radius: 4px;\n  font-size: 12px;\n  font-weight: 600;\n}\n.status-badge.active[data-v-6090e778] {\n  background: #d4edda;\n  color: #155724;\n}\n.status-badge.disabled[data-v-6090e778] {\n  background: #f8d7da;\n  color: #721c24;\n}\n.btn-link[data-v-6090e778] {\n  background: none;\n  border: none;\n  color: #1f487e;\n  cursor: pointer;\n  text-decoration: underline;\n  padding: 0 6px;\n  font-size: 13px;\n}\n.btn-link[data-v-6090e778]:hover {\n  color: #0d2d52;\n}\n.action-icon-btn[data-v-6090e778] {\n  width: 30px;\n  height: 30px;\n  border: none;\n  border-radius: 6px;\n  background: #eef2ff;\n  color: #1f487e;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  cursor: pointer;\n  margin: 0 4px;\n  transition: background-color 0.2s, color 0.2s, transform 0.2s;\n}\n.action-icon-btn[data-v-6090e778]:hover {\n  background: #1f487e;\n  color: #fff;\n  transform: translateY(-1px);\n}\n.action-icon-svg[data-v-6090e778] {\n  width: 16px;\n  height: 16px;\n}\n", ""]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 
@@ -472,7 +705,7 @@ __webpack_require__.r(__webpack_exports__);
 var ___CSS_LOADER_EXPORT___ = _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_0___default()(function(i){return i[1]});
 ___CSS_LOADER_EXPORT___.push([module.id, "@import url(https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap);"]);
 // Module
-___CSS_LOADER_EXPORT___.push([module.id, ":root {\n    --primary-color: #2a4494;\n    --secondary-color: #f1f5f8;\n    --white: #fff;\n    --black: #000;\n    font-family: \"Roboto\", sans-serif;\n}\n\nbody::-webkit-scrollbar {\n    width: 1em;\n}\n\nbody::-webkit-scrollbar-track {\n    box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);\n}\n\nbody::-webkit-scrollbar-thumb {\n    background-color: darkgrey;\n    outline: 1px solid slategrey;\n}\n\n.card-container::-webkit-scrollbar {\n    width: 0.5em;\n}\n\n.card-container::-webkit-scrollbar-track {\n    box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);\n}\n\n.card-container::-webkit-scrollbar-thumb {\n    background-color: darkgrey;\n    outline: 1px solid slategrey;\n}\n\n/* main div scrollbar  */\n\nmain::-webkit-scrollbar {\n    width: 0.7em;\n}\n\nmain::-webkit-scrollbar-track {\n    box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);\n}\n\nmain::-webkit-scrollbar-thumb {\n    background-color: darkgrey;\n    outline: 1px solid slategrey;\n}\n\n.main {\n    background-color: var(--secondary-color);\n    height: 120%;\n    overflow: auto;\n    margin: 20px 30px 0px 30px;\n    border-top-right-radius: 40px;\n    border-top-left-radius: 40px;\n    padding: 5px 40px;\n    padding-bottom: 40px;\n    display: flex;\n    flex-direction: column;\n}\n.top-bar {\n    height: 60px;\n    display: flex;\n    align-items: center;\n    justify-content: space-between;\n    padding: 5px 5px;\n    border-bottom: 1px solid lightgray;\n}\n.user-info {\n    display: flex;\n    align-items: center;\n    justify-content: space-between;\n}\n.user-info h2 {\n    font-size: 17px;\n    margin-bottom: 5px;\n    line-height: 18px;\n}\n.user-info p {\n    font-size: 12px !important;\n    margin: 0;\n}\n.top-bar p {\n    font-size: 17px;\n    color: gray;\n    letter-spacing: 1px;\n}\n.controller-box {\n    margin-top: 40px;\n    display: flex;\n    align-items: center;\n    justify-content: space-between;\n}\n\n.search {\n    height: 40px;\n    border-radius: 5px;\n    background-color: white;\n    display: flex;\n    align-items: center;\n    border: 1px solid lightgray;\n    padding: 0px 0px 0px 10px;\n    box-shadow: 0px 2px 5px -1px rgba(0, 0, 0, 0.22);\n    -webkit-box-shadow: 0px 2px 5px -1px rgba(0, 0, 0, 0.22);\n    -moz-box-shadow: 0px 2px 5px -1px rgba(0, 0, 0, 0.22);\n    transition: box-shadow 0.3s;\n}\n.search img {\n    width: 20px;\n    height: 20px;\n}\n.search input {\n    width: 200px;\n    background-color: white;\n    border-radius: 5px;\n    border: none;\n    padding: 5px 10px;\n}\n.search input:focus {\n    outline: none;\n}\n.right-action button {\n    box-shadow: 0px 2px 5px 0px rgba(0, 0, 0, 0.33);\n    -webkit-box-shadow: 0px 2px 5px 0px rgba(0, 0, 0, 0.33);\n    -moz-box-shadow: 0px 2px 5px 0px rgba(0, 0, 0, 0.33);\n    border: none;\n    border-radius: 5px;\n    height: 40px;\n    text-transform: capitalize;\n    transition: opacity 0.3s;\n}\n.btn {\n    background-color: var(--primary-color);\n    color: white;\n    padding: 0 20px;\n    font-size: 16px;\n}\n.btn-box {\n    width: 40px;\n    background-color: white;\n    margin-left: 20px;\n    margin-top: 20px;\n    border: none;\n    height: 40px;\n    border-radius: 5px;\n    overflow: hidden;\n    box-shadow: 0px 2px 1px 0px rgba(0, 0, 0, 0.33);\n    -webkit-box-shadow: 0px 2px 1px 0px rgba(0, 0, 0, 0.33);\n    -moz-box-shadow: 0px 2px 1px 0px rgba(0, 0, 0, 0.33);\n}\n.btn-box img {\n    width: 20px;\n    height: 20px;\n}\nbutton:hover {\n    opacity: 0.7;\n    cursor: pointer;\n}\n.search:hover {\n    border: 1px solid lightblue;\n}\n\n.card-wrapper {\n    margin-top: 30px;\n    display: flex;\n    flex-wrap: wrap;\n    justify-content: space-evenly;\n    padding-bottom: 10px;\n}\n.card-container {\n    padding: 15px;\n    width: 200px;\n    max-height: 350px;\n    background-color: white;\n    box-shadow: 0px 2px 8px -3px rgba(0, 0, 0, 0.83);\n    -webkit-box-shadow: 0px 2px 8px -3px rgba(0, 0, 0, 0.83);\n    -moz-box-shadow: 0px 2px 8px -3px rgba(0, 0, 0, 0.83);\n    border-radius: 5px;\n    display: flex;\n    align-items: center;\n    flex-direction: column;\n    text-align: center;\n    margin-right: 20px;\n    margin-top: 30px;\n    transform: translateY(0px);\n    transition: all 0.3s;\n    overflow: auto;\n}\n.card-container img {\n    height: 68px;\n    width: 68px;\n}\n.info h1 {\n    font-size: 17px;\n    line-height: 20px;\n    margin-bottom: 10px;\n    text-transform: capitalize;\n}\n.info p {\n    line-height: 16px;\n}\n.card-container p {\n    font-size: 12px;\n}\n.card-container:hover {\n    box-shadow: 0px 2px 20px -3px rgba(0, 0, 0, 0.83);\n    -webkit-box-shadow: 0px 2px 20px -3px rgba(0, 0, 0, 0.83);\n    -moz-box-shadow: 0px 2px 20px -3px rgba(0, 0, 0, 0.83);\n    transform: translateY(-20px);\n}\n.top-action {\n    width: 100%;\n    display: flex;\n    align-items: center;\n    justify-content: space-between;\n    position: sticky;\n    top: 0;\n}\n.menu {\n    padding-left: 10px;\n    transition: opacity 0.3s;\n}\n.menu img {\n    width: 20px;\n    height: 20px;\n}\n.menu:hover {\n    cursor: pointer;\n    opacity: 0.6;\n}\n.bottom-bar {\n    width: 100%;\n}\n.bottom-info {\n    word-wrap: break-word;\n    width: 100%;\n}\n.bottom-info p {\n    font-size: 15px;\n}\n\n.info-mini .t {\n    font-size: 10px;\n    text-transform: capitalize;\n    padding: 0;\n    margin-bottom: 2px;\n    line-height: 10px;\n}\n.info-mini .v {\n    font-size: 14px;\n    line-height: 16px;\n    color: black;\n    padding: 0;\n    margin: 0;\n    margin-bottom: 2px;\n}\n\n@media only screen and (max-width: 700px) {\n    .main {\n        margin: 0px;\n        border-radius: 0;\n        padding: 0 5px;\n    }\n    .top-bar {\n        flex-direction: column;\n        height: 200px;\n        align-items: center;\n        justify-content: flex-start;\n    }\n    .controller-box {\n        margin-top: 10px;\n    }\n    .search input {\n        width: 120px;\n    }\n    .btn {\n        font-size: 12px;\n        padding: 0px 10px;\n    }\n    .top-bar p {\n        font-size: 13px;\n        margin: 2;\n    }\n}\n", ""]);
+___CSS_LOADER_EXPORT___.push([module.id, ":root {\n    --primary-color: #2a4494;\n    --secondary-color: #f1f5f8;\n    --white: #fff;\n    --black: #000;\n    font-family: \"Roboto\", sans-serif;\n}\n\nbody::-webkit-scrollbar {\n    width: 1em;\n}\n\nbody::-webkit-scrollbar-track {\n    box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);\n}\n\nbody::-webkit-scrollbar-thumb {\n    background-color: darkgrey;\n    outline: 1px solid slategrey;\n}\n\n.card-container::-webkit-scrollbar {\n    width: 0.5em;\n}\n\n.card-container::-webkit-scrollbar-track {\n    box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);\n}\n\n.card-container::-webkit-scrollbar-thumb {\n    background-color: darkgrey;\n    outline: 1px solid slategrey;\n}\n\n/* main div scrollbar  */\n\nmain::-webkit-scrollbar {\n    width: 0.7em;\n}\n\nmain::-webkit-scrollbar-track {\n    box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);\n}\n\nmain::-webkit-scrollbar-thumb {\n    background-color: darkgrey;\n    outline: 1px solid slategrey;\n}\n\n.main {\n    background-color: var(--secondary-color);\n    height: 120%;\n    overflow: auto;\n    margin: 20px 30px 0px 30px;\n    border-top-right-radius: 40px;\n    border-top-left-radius: 40px;\n    padding: 5px 40px;\n    padding-bottom: 40px;\n    display: flex;\n    flex-direction: column;\n}\n.top-bar {\n    height: 60px;\n    display: flex;\n    align-items: center;\n    justify-content: space-between;\n    padding: 5px 5px;\n    border-bottom: 1px solid lightgray;\n}\n.user-info {\n    display: flex;\n    align-items: center;\n    justify-content: space-between;\n}\n.user-info h2 {\n    font-size: 17px;\n    margin-bottom: 5px;\n    line-height: 18px;\n}\n.user-info p {\n    font-size: 12px !important;\n    margin: 0;\n}\n.top-bar p {\n    font-size: 17px;\n    color: gray;\n    letter-spacing: 1px;\n}\n.back-nav-btn {\n    display: inline-flex;\n    align-items: center;\n    justify-content: center;\n    gap: 6px;\n    min-height: 36px;\n    padding: 0 12px;\n    border-radius: 8px;\n    border: 1px solid #cdd5df;\n    background: #fff;\n    color: #1f2937;\n    font-size: 13px;\n    font-weight: 600;\n    line-height: 1;\n    text-decoration: none;\n    transition: background-color 0.2s, border-color 0.2s, color 0.2s;\n}\n.back-nav-btn:hover {\n    background: #f8fafc;\n    border-color: #9eb0c4;\n    color: #0f172a;\n}\n.controller-box {\n    margin-top: 40px;\n    display: flex;\n    align-items: center;\n    justify-content: space-between;\n}\n.right-action {\n    display: flex;\n    align-items: center;\n    gap: 8px;\n    flex-wrap: wrap;\n}\n\n.search {\n    height: 40px;\n    border-radius: 5px;\n    background-color: white;\n    display: flex;\n    align-items: center;\n    border: 1px solid lightgray;\n    padding: 0px 0px 0px 10px;\n    box-shadow: 0px 2px 5px -1px rgba(0, 0, 0, 0.22);\n    -webkit-box-shadow: 0px 2px 5px -1px rgba(0, 0, 0, 0.22);\n    -moz-box-shadow: 0px 2px 5px -1px rgba(0, 0, 0, 0.22);\n    transition: box-shadow 0.3s;\n}\n.search img {\n    width: 20px;\n    height: 20px;\n}\n.search input {\n    width: 200px;\n    background-color: white;\n    border-radius: 5px;\n    border: none;\n    padding: 5px 10px;\n}\n.search input:focus {\n    outline: none;\n}\n.right-action button {\n    box-shadow: 0px 2px 5px 0px rgba(0, 0, 0, 0.33);\n    -webkit-box-shadow: 0px 2px 5px 0px rgba(0, 0, 0, 0.33);\n    -moz-box-shadow: 0px 2px 5px 0px rgba(0, 0, 0, 0.33);\n    border: none;\n    border-radius: 8px;\n    height: 42px;\n    text-transform: capitalize;\n    transition: opacity 0.2s, transform 0.2s;\n}\n.btn {\n    background-color: var(--primary-color);\n    color: white;\n    padding: 0 16px;\n    min-height: 42px;\n    border: 1px solid transparent;\n    border-radius: 8px;\n    display: inline-flex;\n    align-items: center;\n    justify-content: center;\n    font-size: 14px;\n    font-weight: 600;\n    line-height: 1;\n    text-decoration: none;\n    box-shadow: 0 4px 10px rgba(31, 72, 126, 0.25);\n    transition: opacity 0.2s, transform 0.2s, background-color 0.2s;\n}\n.btn-box {\n    width: 40px;\n    background-color: white;\n    margin-left: 20px;\n    margin-top: 20px;\n    border: none;\n    height: 40px;\n    border-radius: 5px;\n    overflow: hidden;\n    box-shadow: 0px 2px 1px 0px rgba(0, 0, 0, 0.33);\n    -webkit-box-shadow: 0px 2px 1px 0px rgba(0, 0, 0, 0.33);\n    -moz-box-shadow: 0px 2px 1px 0px rgba(0, 0, 0, 0.33);\n}\n.btn-box img {\n    width: 20px;\n    height: 20px;\n}\nbutton:hover,\n.btn:hover {\n    opacity: 0.92;\n    cursor: pointer;\n}\nbutton:disabled,\n.btn:disabled {\n    opacity: 0.6;\n    cursor: not-allowed;\n}\n.search:hover {\n    border: 1px solid lightblue;\n}\n\n.card-wrapper {\n    margin-top: 30px;\n    display: flex;\n    flex-wrap: wrap;\n    justify-content: space-evenly;\n    padding-bottom: 10px;\n}\n.card-container {\n    padding: 15px;\n    width: 200px;\n    max-height: 350px;\n    background-color: white;\n    box-shadow: 0px 2px 8px -3px rgba(0, 0, 0, 0.83);\n    -webkit-box-shadow: 0px 2px 8px -3px rgba(0, 0, 0, 0.83);\n    -moz-box-shadow: 0px 2px 8px -3px rgba(0, 0, 0, 0.83);\n    border-radius: 5px;\n    display: flex;\n    align-items: center;\n    flex-direction: column;\n    text-align: center;\n    margin-right: 20px;\n    margin-top: 30px;\n    transform: translateY(0px);\n    transition: all 0.3s;\n    overflow: auto;\n}\n.card-container img {\n    height: 68px;\n    width: 68px;\n}\n.info h1 {\n    font-size: 17px;\n    line-height: 20px;\n    margin-bottom: 10px;\n    text-transform: capitalize;\n}\n.info p {\n    line-height: 16px;\n}\n.card-container p {\n    font-size: 12px;\n}\n.card-container:hover {\n    box-shadow: 0px 2px 20px -3px rgba(0, 0, 0, 0.83);\n    -webkit-box-shadow: 0px 2px 20px -3px rgba(0, 0, 0, 0.83);\n    -moz-box-shadow: 0px 2px 20px -3px rgba(0, 0, 0, 0.83);\n    transform: translateY(-20px);\n}\n.top-action {\n    width: 100%;\n    display: flex;\n    align-items: center;\n    justify-content: space-between;\n    position: sticky;\n    top: 0;\n}\n.menu {\n    padding-left: 10px;\n    transition: opacity 0.3s;\n}\n.menu img {\n    width: 20px;\n    height: 20px;\n}\n.menu:hover {\n    cursor: pointer;\n    opacity: 0.6;\n}\n.bottom-bar {\n    width: 100%;\n}\n.bottom-info {\n    word-wrap: break-word;\n    width: 100%;\n}\n.bottom-info p {\n    font-size: 15px;\n}\n\n.info-mini .t {\n    font-size: 10px;\n    text-transform: capitalize;\n    padding: 0;\n    margin-bottom: 2px;\n    line-height: 10px;\n}\n.info-mini .v {\n    font-size: 14px;\n    line-height: 16px;\n    color: black;\n    padding: 0;\n    margin: 0;\n    margin-bottom: 2px;\n}\n\n@media only screen and (max-width: 700px) {\n    .main {\n        margin: 0px;\n        border-radius: 0;\n        padding: 0 5px;\n    }\n    .top-bar {\n        flex-direction: column;\n        height: 200px;\n        align-items: center;\n        justify-content: flex-start;\n    }\n    .controller-box {\n        margin-top: 10px;\n    }\n    .search input {\n        width: 120px;\n    }\n    .btn {\n        font-size: 12px;\n        padding: 0px 10px;\n    }\n    .top-bar p {\n        font-size: 13px;\n        margin: 2;\n    }\n}\n", ""]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 
@@ -495,7 +728,7 @@ __webpack_require__.r(__webpack_exports__);
 
 var ___CSS_LOADER_EXPORT___ = _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_0___default()(function(i){return i[1]});
 // Module
-___CSS_LOADER_EXPORT___.push([module.id, ":root {\n    --primary-color: #2a4494;\n    --white: #fff;\n    --black: #000;\n}\n\n.right-box {\n    width: 300px;\n    padding: 10px 20px;\n    background-color: white;\n    border-radius: 10px;\n    box-shadow: 0px 10px 17px -10px rgba(0, 0, 0, 0.75);\n    -webkit-box-shadow: 0px 10px 17px -10px rgba(0, 0, 0, 0.75);\n    -moz-box-shadow: 0px 10px 17px -10px rgba(0, 0, 0, 0.75);\n}\n.right-box h1 {\n    margin-bottom: 5px;\n}\n.input-contianer {\n    margin-top: 10px;\n    margin-bottom: 3px;\n}\n.input-contianer input {\n    width: 90%;\n    height: 40px;\n    border: 1px solid #ebebe4;\n    border-radius: 7px;\n    padding: 0px 15px;\n    transition: border 0.3s;\n}\n\n.input-contianer > select {\n    border: none;\n    width: 100%;\n    height: 40px;\n    border: 1px solid #ebebe4;\n    transition: border 0.3s;\n    border-radius: 7px;\n    text-indent: 10px;\n}\n\n.line-container {\n    margin-top: 10px;\n    display: flex;\n}\n.line {\n    width: 40px;\n    height: 2px;\n    background-color: green;\n}\n.term {\n    display: flex;\n    align-items: center;\n}\n.checkbox {\n    height: 20px;\n    width: 20px;\n    outline: none;\n    border: 1px solid #ebebe4;\n}\n.checkbox:hover {\n    cursor: pointer;\n}\n.form-container {\n    padding: 10px 0px;\n    transition: opacity 0.3s;\n}\n.overlay {\n    background-color: white;\n    padding-bottom: 15px;\n    border-radius: 10px;\n}\n.term p {\n    font-size: 13px;\n    color: gray;\n    letter-spacing: 1px;\n    margin-left: 5px;\n}\n.term a {\n    text-decoration: none;\n    padding: 0 5px;\n}\n.btn-container button {\n    width: 128px;\n    height: 46px;\n    border: none;\n    border-radius: 10px;\n    box-shadow: 2px 3px 9px 0px rgba(0, 0, 0, 0.27);\n    -webkit-box-shadow: 2px 3px 9px 0px rgba(0, 0, 0, 0.27);\n    -moz-box-shadow: 2px 3px 9px 0px rgba(0, 0, 0, 0.27);\n}\n.btn-container {\n    margin-top: 30px;\n    display: flex;\n    align-items: center;\n    justify-content: space-between;\n}\n.blue-btn {\n    background-color: var(--primary-color);\n    color: white;\n}\n.white-btn {\n    background-color: var(--white);\n    color: black;\n}\n\n/* custom file input  */\nlabel {\n    display: table;\n    width: 90%;\n    height: 40px;\n    color: lightgray;\n    font-weight: bold;\n    letter-spacing: 1px;\n    font-size: 14px;\n    border: 1px solid #ebebe4;\n    border-radius: 7px;\n    padding: 0px 15px;\n    transition: border 0.3s;\n    display: flex;\n    align-items: center;\n    justify-content: space-between;\n}\n\n.err {\n    color: red;\n    font-size: 11px;\n}\n\nlabel img {\n    width: 20px;\n    height: 20px;\n}\n\ninput[type=\"file\"] {\n    display: none;\n}\n\n/* end custom file input  */\n\n/* hover effects */\n\n.btn-container button:hover {\n    opacity: 0.9;\n    cursor: pointer;\n}\n.input-contianer input:focus {\n    outline: none;\n    border: 1px solid lightblue;\n}\n\n/* changing placeholder color  */\n\n::-webkit-input-placeholder {\n    /* Chrome/Opera/Safari */\n    color: lightgray;\n    font-weight: bold;\n    letter-spacing: 1px;\n}\n::-moz-placeholder {\n    /* Firefox 19+ */\n    color: lightgray;\n    font-weight: bold;\n    letter-spacing: 1px;\n}\n:-ms-input-placeholder {\n    /* IE 10+ */\n    color: lightgray;\n    font-weight: bold;\n    letter-spacing: 1px;\n}\n:-moz-placeholder {\n    /* Firefox 18- */\n    color: lightgray;\n    font-weight: bold;\n    letter-spacing: 1px;\n}\n", ""]);
+___CSS_LOADER_EXPORT___.push([module.id, ":root {\n    --primary-color: #2a4494;\n    --white: #fff;\n    --black: #000;\n}\n\n.right-box {\n    width: 300px;\n    padding: 10px 20px;\n    background-color: white;\n    border-radius: 10px;\n    box-shadow: 0px 10px 17px -10px rgba(0, 0, 0, 0.75);\n    -webkit-box-shadow: 0px 10px 17px -10px rgba(0, 0, 0, 0.75);\n    -moz-box-shadow: 0px 10px 17px -10px rgba(0, 0, 0, 0.75);\n}\n.right-box h1 {\n    margin-bottom: 5px;\n}\n.input-contianer {\n    margin-top: 10px;\n    margin-bottom: 3px;\n}\n.input-contianer > label {\n    display: block;\n    width: auto;\n    height: auto;\n    border: none;\n    color: #4b5563;\n    font-weight: 600;\n    letter-spacing: 0;\n    font-size: 13px;\n    padding: 0;\n    margin-bottom: 6px;\n}\n.input-contianer input:not([type=\"checkbox\"]):not([type=\"radio\"]),\n.input-contianer textarea,\n.input-contianer > select {\n    width: 90%;\n    height: 40px;\n    border: 1px solid #ebebe4;\n    border-radius: 7px;\n    padding: 0px 15px;\n    transition: border 0.3s;\n    box-sizing: border-box;\n}\n\n.input-contianer textarea {\n    width: 100%;\n    min-height: 90px;\n    padding: 10px 12px;\n    resize: vertical;\n}\n\n.input-contianer > select {\n    width: 100%;\n    text-indent: 0;\n}\n\n.line-container {\n    margin-top: 10px;\n    display: flex;\n}\n.line {\n    width: 40px;\n    height: 2px;\n    background-color: green;\n}\n.term {\n    display: flex;\n    align-items: center;\n}\n\n.checkbox-container {\n    margin-top: 12px;\n}\n\n.checkbox {\n    width: 100%;\n    display: flex;\n    align-items: center;\n    justify-content: space-between;\n    gap: 10px;\n    border: 1px solid #ebebe4;\n    border-radius: 7px;\n    padding: 10px 12px;\n    box-sizing: border-box;\n}\n\n.checkbox span {\n    color: #4b5563;\n    font-size: 13px;\n    font-weight: 500;\n}\n\n.checkbox input {\n    width: 18px;\n    height: 18px;\n    margin: 0;\n    cursor: pointer;\n}\n\n.radio-group {\n    display: flex;\n    flex-wrap: wrap;\n    gap: 14px;\n    margin-top: 4px;\n}\n\n.radio-option {\n    display: inline-flex;\n    align-items: center;\n    gap: 7px;\n    color: #4b5563;\n    font-size: 13px;\n    font-weight: 500;\n}\n\n.radio-option input[type=\"radio\"] {\n    margin: 0;\n}\n.form-container {\n    padding: 10px 0px;\n    transition: opacity 0.3s;\n}\n.overlay {\n    background-color: white;\n    padding-bottom: 15px;\n    border-radius: 10px;\n}\n.term p {\n    font-size: 13px;\n    color: gray;\n    letter-spacing: 1px;\n    margin-left: 5px;\n}\n.term a {\n    text-decoration: none;\n    padding: 0 5px;\n}\n.btn-container {\n    margin-top: 30px;\n    display: flex;\n    align-items: center;\n    justify-content: flex-end;\n    flex-wrap: wrap;\n    gap: 10px;\n}\n.btn-container button {\n    min-width: 120px;\n    height: 42px;\n    padding: 0 16px;\n    border: 1px solid transparent;\n    border-radius: 8px;\n    font-size: 14px;\n    font-weight: 600;\n    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);\n    transition: background-color 0.2s, color 0.2s, border-color 0.2s, opacity 0.2s;\n}\n.blue-btn {\n    background-color: var(--primary-color);\n    color: white;\n}\n.white-btn {\n    background-color: var(--white);\n    color: #1f2937;\n    border-color: #d1d5db;\n}\n\n/* custom file input  */\n.file-input-label {\n    display: table;\n    width: 90%;\n    height: 40px;\n    color: lightgray;\n    font-weight: bold;\n    letter-spacing: 1px;\n    font-size: 14px;\n    border: 1px solid #ebebe4;\n    border-radius: 7px;\n    padding: 0px 15px;\n    transition: border 0.3s;\n    display: flex;\n    align-items: center;\n    justify-content: space-between;\n}\n\n.err {\n    color: red;\n    font-size: 11px;\n}\n\n.file-input-label img {\n    width: 20px;\n    height: 20px;\n}\n\ninput[type=\"file\"] {\n    display: none;\n}\n\n/* end custom file input  */\n\n/* hover effects */\n\n.btn-container button:hover {\n    opacity: 0.95;\n    cursor: pointer;\n}\n.btn-container button:disabled {\n    opacity: 0.6;\n    cursor: not-allowed;\n}\n.input-contianer input:not([type=\"checkbox\"]):not([type=\"radio\"]):focus,\n.input-contianer textarea:focus,\n.input-contianer > select:focus {\n    outline: none;\n    border: 1px solid lightblue;\n}\n\n/* changing placeholder color  */\n\n::-webkit-input-placeholder {\n    /* Chrome/Opera/Safari */\n    color: lightgray;\n    font-weight: bold;\n    letter-spacing: 1px;\n}\n::-moz-placeholder {\n    /* Firefox 19+ */\n    color: lightgray;\n    font-weight: bold;\n    letter-spacing: 1px;\n}\n:-ms-input-placeholder {\n    /* IE 10+ */\n    color: lightgray;\n    font-weight: bold;\n    letter-spacing: 1px;\n}\n:-moz-placeholder {\n    /* Firefox 18- */\n    color: lightgray;\n    font-weight: bold;\n    letter-spacing: 1px;\n}\n", ""]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 
@@ -614,7 +847,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _adminDashboard_vue_vue_type_template_id_6090e778_scoped_true__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./adminDashboard.vue?vue&type=template&id=6090e778&scoped=true */ "./resources/js/views/adminDashboard.vue?vue&type=template&id=6090e778&scoped=true");
 /* harmony import */ var _adminDashboard_vue_vue_type_script_lang_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./adminDashboard.vue?vue&type=script&lang=js */ "./resources/js/views/adminDashboard.vue?vue&type=script&lang=js");
 /* harmony import */ var _adminDashboard_vue_vue_type_style_index_0_id_6090e778_scoped_true_lang_css__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./adminDashboard.vue?vue&type=style&index=0&id=6090e778&scoped=true&lang=css */ "./resources/js/views/adminDashboard.vue?vue&type=style&index=0&id=6090e778&scoped=true&lang=css");
-/* harmony import */ var _Users_muhammadusman_Sites_paywell_node_modules_vue_loader_dist_exportHelper_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./node_modules/vue-loader/dist/exportHelper.js */ "./node_modules/vue-loader/dist/exportHelper.js");
+/* harmony import */ var _Users_muhammadusman_Sites_cursor_paywell_node_modules_vue_loader_dist_exportHelper_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./node_modules/vue-loader/dist/exportHelper.js */ "./node_modules/vue-loader/dist/exportHelper.js");
 
 
 
@@ -622,7 +855,7 @@ __webpack_require__.r(__webpack_exports__);
 ;
 
 
-const __exports__ = /*#__PURE__*/(0,_Users_muhammadusman_Sites_paywell_node_modules_vue_loader_dist_exportHelper_js__WEBPACK_IMPORTED_MODULE_3__["default"])(_adminDashboard_vue_vue_type_script_lang_js__WEBPACK_IMPORTED_MODULE_1__["default"], [['render',_adminDashboard_vue_vue_type_template_id_6090e778_scoped_true__WEBPACK_IMPORTED_MODULE_0__.render],['__scopeId',"data-v-6090e778"],['__file',"resources/js/views/adminDashboard.vue"]])
+const __exports__ = /*#__PURE__*/(0,_Users_muhammadusman_Sites_cursor_paywell_node_modules_vue_loader_dist_exportHelper_js__WEBPACK_IMPORTED_MODULE_3__["default"])(_adminDashboard_vue_vue_type_script_lang_js__WEBPACK_IMPORTED_MODULE_1__["default"], [['render',_adminDashboard_vue_vue_type_template_id_6090e778_scoped_true__WEBPACK_IMPORTED_MODULE_0__.render],['__scopeId',"data-v-6090e778"],['__file',"resources/js/views/adminDashboard.vue"]])
 /* hot reload */
 if (false) // removed by dead control flow
 {}

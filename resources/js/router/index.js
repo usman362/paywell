@@ -64,6 +64,22 @@ const routes = [
         },
     },
     {
+        name: "admin.chat",
+        path: "/dashboard/chat",
+        component: () => import("../views/AdminChat.vue"),
+        meta: {
+            middleware: [auth, admin],
+        },
+    },
+    {
+        name: "admin.announcements",
+        path: "/dashboard/announcements",
+        component: () => import("../views/AdminAnnouncements.vue"),
+        meta: {
+            middleware: [auth, admin],
+        },
+    },
+    {
         path: "/:catchAll(.*)",
         component: () => import("../views/NotFound.vue"),
         name: "NotFound",

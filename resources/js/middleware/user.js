@@ -4,5 +4,7 @@ export default (to, from, next) => {
     let isAdmin = store.getters.isAdmin;
     if (isAdmin) {
         next({ name: "admin.dashboard" });
+    } else {
+        next();
     }
 };

@@ -3,13 +3,8 @@
     <!-- Top Bar -->
     <div class="top-bar">
       <img src="../assets/logo.png" alt="logo" style="height:45px;width:70px" />
-      <div><p>SUPER ADMIN</p></div>
+      <div><p>Dashboard</p></div>
       <div class="user-info">
-        <div style="margin-right:20px">
-          <button class="btn-box" @click.prevent="onEdit(user)">
-            <img src="../assets/edit.png" alt="edit" />
-          </button>
-        </div>
         <div>
           <h2>{{ user.name }}</h2>
           <p>{{ user.email }}</p>
@@ -22,173 +17,119 @@
       </div>
     </div>
 
-    <!-- Search + Controls -->
-    <div class="bottom-bar">
-      <div class="controller-box">
-        <div class="search">
-          <img src="../assets/search.png" alt="search" />
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Search users..."
-            @keyup.enter="fetchUsers(1)"
-          />
-        </div>
-        <div class="right-action">
-          <select v-model.number="perPage" @change="fetchUsers(1)" class="page-select">
-            <option value="20">20 per page</option>
-            <option value="50">50 per page</option>
-            <option value="100">100 per page</option>
-          </select>
-          <button class="btn" @click.prevent="openModal">Add new user</button>
-        </div>
+    <!-- Announcements feed -->
+    <div class="announcements-feed">
+      <h3>Announcements</h3>
+      <div v-if="announcementsLoading" class="feed-loading">Loading…</div>
+      <div v-else-if="announcements.length === 0" class="feed-empty">No announcements yet.</div>
+      <div v-else class="feed-list">
+        <article v-for="a in announcements" :key="a.id" class="announcement-card">
+          <h4>{{ a.title }}</h4>
+          <p class="announcement-body">{{ a.body }}</p>
+          <span class="announcement-meta">{{ formatDate(a.created_at) }}{{ a.creator ? ' · ' + a.creator.name : '' }}</span>
+        </article>
       </div>
+    </div>
 
-      <!-- Users Table -->
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Email</th>
-            <th>ID</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="user in users" :key="user.id">
-            <td @click="goToUser(user.id)">{{ user.name }}</td>
-            <td>{{ user.email }}</td>
-            <td>{{ user.user_login_token }}</td>
-            <td class="actions">
-              <span class="menu" @click="onEdit(user)">
-                <img src="../assets/edit.png" alt="edit" />
-              </span>
-              <span class="menu" @click="onDelete(user.id)">
-                <img src="../assets/menu.png" alt="delete" />
-              </span>
-            </td>
-          </tr>
-
-          <tr v-if="users.length === 0">
-            <td colspan="4" style="text-align:center;color:#666;">No users found.</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <!-- Pagination -->
-      <div class="pager">
-        <button class="page-btn" @click="prevPage" :disabled="currentPage === 1">
-          « Prev
-        </button>
-        <span class="page-info">
-          Page {{ currentPage }} of {{ totalPages }} ({{ totalUsers }} total)
-        </span>
-        <button class="page-btn" @click="nextPage" :disabled="currentPage === totalPages">
-          Next »
-        </button>
-      </div>
+    <div class="dashboard-welcome">
+      <p>Welcome, {{ user.name }}. Use the menu or links to manage your libraries and files.</p>
     </div>
   </div>
 </template>
 
 <script>
+import { mapGetters } from "vuex";
+import axios from "axios";
+
 export default {
-  name: "AdminDashboard",
+  name: "UserDashboard",
   data() {
     return {
-      users: [],
-      user: {}, // logged-in admin
-      searchQuery: "",
-      currentPage: 1,
-      perPage: 20,
-      totalPages: 1,
-      totalUsers: 0,
-      loading: false,
+      user: {},
+      announcements: [],
+      announcementsLoading: false,
     };
   },
+  computed: {
+    ...mapGetters(["user"]),
+  },
+  created() {
+    this.user = this.$store.getters.user || {};
+    this.fetchAnnouncements();
+  },
   methods: {
-    async fetchUsers(page = 1) {
-      this.loading = true;
-      this.currentPage = page;
+    formatDate(createdAt) {
+      if (!createdAt) return "";
+      return new Date(createdAt).toLocaleDateString(undefined, { dateStyle: "medium", timeStyle: "short" });
+    },
+    async fetchAnnouncements() {
+      this.announcementsLoading = true;
       try {
-        const query = this.searchQuery ? `&search=${this.searchQuery}` : "";
-        const res = await fetch(
-          `/api/allusers?page=${page}&per_page=${this.perPage}${query}`
-        );
-        const data = await res.json();
-        this.users = data.data || [];
-        this.totalUsers = data.total || 0;
-        this.totalPages = data.last_page || 1;
-        this.currentPage = data.current_page || page;
-      } catch (err) {
-        console.error("Error fetching users", err);
+        const { data } = await axios.get("announcements/");
+        this.announcements = data;
+      } catch (e) {
+        this.announcements = [];
       } finally {
-        this.loading = false;
+        this.announcementsLoading = false;
       }
-    },
-    nextPage() {
-      if (this.currentPage < this.totalPages) this.fetchUsers(this.currentPage + 1);
-    },
-    prevPage() {
-      if (this.currentPage > 1) this.fetchUsers(this.currentPage - 1);
-    },
-    goToUser(id) {
-      this.$router.push(`/user/${id}`);
-    },
-    onEdit(user) {
-      console.log("Edit:", user);
-    },
-    async onDelete(id) {
-      if (!confirm("Delete this user?")) return;
-      try {
-        await fetch(`/api/user/${id}`, { method: "DELETE" });
-        this.fetchUsers(this.currentPage);
-      } catch (err) {
-        console.error("Delete failed", err);
-      }
-    },
-    openModal() {
-      console.log("Open modal");
     },
     signout() {
-      console.log("Signout clicked");
+      this.$store.dispatch("SIGN_OUT").then(() => this.$router.push("/login"));
     },
   },
   mounted() {
-    this.fetchUsers();
+    if (this.$store.getters.user) this.user = this.$store.getters.user;
   },
 };
 </script>
 
 <style scoped>
-.page-select {
-  height: 40px;
-  border-radius: 5px;
-  border: 1px solid lightgray;
-  padding: 0 10px;
-  margin-right: 10px;
+@import url("../styles/dashboard.css");
+.announcements-feed {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 16px;
+  border: 1px solid #e0e0e0;
 }
-.pager {
+.announcements-feed h3 {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+}
+.feed-loading,
+.feed-empty {
+  color: #666;
+  padding: 12px 0;
+}
+.feed-list {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 20px;
+  flex-direction: column;
   gap: 12px;
 }
-.page-btn {
-  padding: 8px 16px;
-  border: none;
-  background: #1f487e;
-  color: white;
-  border-radius: 4px;
-  cursor: pointer;
+.announcement-card {
+  padding: 14px;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  background: #fafafa;
 }
-.page-btn:disabled {
-  background: #b3c0d6;
-  cursor: not-allowed;
+.announcement-card h4 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
 }
-.page-info {
-  font-size: 14px;
+.announcement-body {
+  margin: 0 0 8px 0;
+  white-space: pre-wrap;
+  word-break: break-word;
   color: #333;
+}
+.announcement-meta {
+  font-size: 12px;
+  color: #666;
+}
+.dashboard-welcome {
+  margin-top: 20px;
+  padding: 16px;
+  background: #f5f5f5;
+  border-radius: 8px;
 }
 </style>

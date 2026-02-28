@@ -133,11 +133,13 @@
 
           <form class="form-container" @submit.prevent="submitHandler()">
             <div class="input-contianer">
+              <label>Name</label>
               <input type="text" placeholder="Name" v-model="form.name" />
               <p class="err" v-if="errorHas('name')">{{ getError("name") }}</p>
             </div>
 
             <div class="input-contianer">
+              <label>Email</label>
               <input type="email" placeholder="Email" v-model="form.email" />
               <p class="err" v-if="errorHas('email')">
                 {{ getError("email") }}
@@ -145,6 +147,7 @@
             </div>
 
             <div class="input-contianer">
+              <label>Password</label>
               <input
                 type="password"
                 placeholder="Password"
@@ -156,6 +159,7 @@
             </div>
 
             <div class="input-contianer">
+              <label>Password confirmation</label>
               <input
                 type="password"
                 placeholder="Password Confirmation"
@@ -170,6 +174,7 @@
               class="input-contianer"
               v-if="mode === 'edit' && form.role === 1"
             >
+              <label>Store token</label>
               <input
                 type="text"
                 placeholder="store token"

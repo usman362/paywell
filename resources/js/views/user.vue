@@ -1,19 +1,9 @@
 <template >
   <div class="main">
     <div class="top-bar">
-      <p
-        @click="goBack()"
-        style="
-          color: black;
-          padding: 5px 10px;
-          border-radius: 4px;
-          cursor: pointer;
-          border: 1px solid black;
-          font-size: 12px;
-        "
-      >
-        back
-      </p>
+      <button type="button" class="back-nav-btn" @click="goBack()">
+        ← Dashboard
+      </button>
       <div>
         <p>
           ID:
@@ -73,12 +63,14 @@
           <h2>{{ mode }} new file</h2>
           <form class="form-container" @submit.prevent="submitHandler()">
             <div class="input-contianer">
+              <label>Logo URL</label>
               <input type="text" placeholder="logo url" v-model="form.logo" />
               <p class="err" v-if="errorHas('logo')">
                 {{ getError("logo") }}
               </p>
             </div>
             <div class="input-contianer">
+              <label>File type</label>
               <select name="cars" id="cars" v-model="form.type">
                 <option value="0">apk</option>
                 <option value="1">pdf</option>
@@ -89,12 +81,14 @@
             </div>
 
             <div class="input-contianer">
+              <label>Name</label>
               <input type="text" placeholder=" Name" v-model="form.name" />
               <p class="err" v-if="errorHas('name')">
                 {{ getError("name") }}
               </p>
             </div>
             <div class="input-contianer">
+              <label>Description</label>
               <input
                 type="text"
                 placeholder="description"
@@ -105,6 +99,7 @@
               </p>
             </div>
             <div class="input-contianer" v-if="form.type == 0">
+              <label>Version</label>
               <input type="text" placeholder="version" v-model="form.version" />
               <p class="err" v-if="errorHas('version')">
                 {{ getError("version") }}
@@ -112,6 +107,7 @@
             </div>
 
             <div class="input-contianer" v-if="form.type == 0">
+              <label>Package</label>
               <input type="text" placeholder="package" v-model="form.package" />
               <p class="err" v-if="errorHas('package')">
                 {{ getError("package") }}
@@ -119,6 +115,7 @@
             </div>
 
             <div class="input-contianer">
+              <label>File URL</label>
               <input
                 type="text"
                 placeholder="url"

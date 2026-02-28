@@ -88,11 +88,39 @@ main::-webkit-scrollbar-thumb {
     color: gray;
     letter-spacing: 1px;
 }
+.back-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 36px;
+    padding: 0 12px;
+    border-radius: 8px;
+    border: 1px solid #cdd5df;
+    background: #fff;
+    color: #1f2937;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1;
+    text-decoration: none;
+    transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+}
+.back-nav-btn:hover {
+    background: #f8fafc;
+    border-color: #9eb0c4;
+    color: #0f172a;
+}
 .controller-box {
     margin-top: 40px;
     display: flex;
     align-items: center;
     justify-content: space-between;
+}
+.right-action {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
 .search {
@@ -127,16 +155,27 @@ main::-webkit-scrollbar-thumb {
     -webkit-box-shadow: 0px 2px 5px 0px rgba(0, 0, 0, 0.33);
     -moz-box-shadow: 0px 2px 5px 0px rgba(0, 0, 0, 0.33);
     border: none;
-    border-radius: 5px;
-    height: 40px;
+    border-radius: 8px;
+    height: 42px;
     text-transform: capitalize;
-    transition: opacity 0.3s;
+    transition: opacity 0.2s, transform 0.2s;
 }
 .btn {
     background-color: var(--primary-color);
     color: white;
-    padding: 0 20px;
-    font-size: 16px;
+    padding: 0 16px;
+    min-height: 42px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1;
+    text-decoration: none;
+    box-shadow: 0 4px 10px rgba(31, 72, 126, 0.25);
+    transition: opacity 0.2s, transform 0.2s, background-color 0.2s;
 }
 .btn-box {
     width: 40px;
@@ -155,9 +194,15 @@ main::-webkit-scrollbar-thumb {
     width: 20px;
     height: 20px;
 }
-button:hover {
-    opacity: 0.7;
+button:hover,
+.btn:hover {
+    opacity: 0.92;
     cursor: pointer;
+}
+button:disabled,
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 .search:hover {
     border: 1px solid lightblue;

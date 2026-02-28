@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Models\File;
 use App\Models\Library;
+use App\Models\PaywallSettings;
 use Image;
 
 class AdminController extends Controller
@@ -23,6 +24,18 @@ class AdminController extends Controller
      }
 
      public function addNewLibrary(User $user) {
+        $paywall = PaywallSettings::get();
+        $currentCount = Library::where('user_id', $user->id)->count();
+        if ($currentCount >= $paywall->free_library_limit) {
+            return response()->json([
+                'message' => 'User has reached library limit. Payment is required to create more libraries.',
+                'paywall' => true,
+                'free_library_limit' => $paywall->free_library_limit,
+                'price' => $paywall->price,
+                'currency' => $paywall->currency,
+            ], 402);
+        }
+
         request()->validate([
             'name' => 'required',
             'password' => 'required',
@@ -58,6 +71,9 @@ class AdminController extends Controller
     }
 
     public function editUser(User $user) {
+        if (request()->user()->role != 2) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
         request()->validate([
             'name' => 'required',
             'email' => 'required|email|unique:users,email,'.$user->id,
@@ -65,6 +81,9 @@ class AdminController extends Controller
          
         $user->name = request()->name;
         $user->email = request()->email;
+        if (request()->has('is_active')) {
+            $user->is_active = (bool) request()->is_active;
+        }
         if(request()->password) {
             request()->validate(['password' => 'required|confirmed|min:6']);
             $user->password  = Hash::make(request()->password);
@@ -75,7 +94,22 @@ class AdminController extends Controller
         }
         $user->save();
         return response()->json($user);
+    }
 
+    /**
+     * Enable or disable a user (admin only). Body: { "is_active": true|false }
+     */
+    public function toggleUserActive(User $user) {
+        if (request()->user()->role != 2) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+        request()->validate(['is_active' => 'required|boolean']);
+        $user->is_active = request()->is_active;
+        $user->save();
+        return response()->json([
+            'user' => $user->fresh(),
+            'message' => $user->is_active ? 'User enabled' : 'User disabled',
+        ]);
     }
 
     public function getUser(Library $library) {
